@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Qwatdril - Project Management & Collaboration</title>
+    <meta name="description" content="Qwatdril is a modern, cloud-based Project Management Tool that helps teams plan, track, and deliver projects effortlessly." />
+    <meta name="keywords" content="project management, collaboration, team, tasks, projects, qwatdril" />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+      
+      * {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        background: #000000;
+        overflow-x: hidden;
+      }
+      
+      .perspective-1000 {
+        perspective: 1000px;
+      }
+      
+      .rotateY-1 {
+        transform: rotateY(1deg);
+      }
+      
+      .rotateY-2 {
+        transform: rotateY(2deg);
+      }
+      
+      /* Enhanced scrollbar */
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: #000000;
+        border-radius: 5px;
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #134be4, #072a87);
+        border-radius: 5px;
+        border: 1px solid #1f2937;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #1a53e8, #134be4);
+      }
+      
+      /* Smooth scrolling */
+      html {
+        scroll-behavior: smooth;
+      }
+      
+      /* Selection colors */
+      ::selection {
+        background: rgba(19, 75, 228, 0.3);
+        color: white;
+      }
+      
+      ::-moz-selection {
+        background: rgba(19, 75, 228, 0.3);
+        color: white;
+      }
+    </style>
+    <script>
+      // Apply theme from localStorage before the app renders
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else if (theme === 'light') {
+          document.documentElement.classList.remove('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
