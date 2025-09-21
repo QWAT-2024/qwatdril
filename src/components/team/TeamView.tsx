@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { UserPlus, Eye, Mail } from 'lucide-react';
+import { UserPlus, Eye, Mail, Trash2 } from 'lucide-react';
 import UserDetailModal from './UserDetailModal';
 import InviteUserModal from './InviteUserModal';
+import { db, doc, deleteDoc } from '../../firebase/firestore';
 
 // --- Define Props Interface ---
 interface TeamViewProps {
@@ -16,6 +17,17 @@ interface TeamViewProps {
 function TeamView({ currentUser, users, projects, onUserAdded, isSuperuser, superuserInfo }: TeamViewProps) {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showInviteUser, setShowInviteUser] = useState(false);
+
+  const handleDeleteUser = async (userId: string) => {
+    if (window.confirm('Are you sure you want to remove this team member?')) {
+      try {
+        await deleteDoc(doc(db, 'users', userId));
+        onUserAdded(); // This will trigger a refetch of the users
+      } catch (error) {
+        console.error('Error removing user:', error);
+      }
+    }
+  };
 
   const loggedInUserOrganization = isSuperuser
     ? superuserInfo?.organization
@@ -112,6 +124,14 @@ function TeamView({ currentUser, users, projects, onUserAdded, isSuperuser, supe
                       >
                         <Mail className="w-4 h-4" />
                       </a>
+                    )}
+                    {isSuperuser && (
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-400/20 rounded-lg transition-all duration-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     )}
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${

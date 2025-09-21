@@ -237,6 +237,7 @@ function ProjectsView({ currentUser, projects, users, reports, onProjectAdded, i
         <ProjectDetailModal
           project={selectedProject}
           users={users}
+          reports={reports.filter(r => r.projectId === selectedProject.id)}
           onClose={handleCloseAllModals}
         />
       )}

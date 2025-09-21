@@ -8,7 +8,7 @@ interface ProfileDropdownProps {
 
 const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ currentUser }) => {
   return (
-    <div className="absolute top-12 right-0 w-64 bg-white dark:bg-dark-900/80 backdrop-blur-xl border border-gray-200 dark:border-primary-900/40 rounded-xl shadow-lg z-[100]">
+    <div className="absolute top-14 right-0 w-64 bg-white dark:bg-dark-900/80 backdrop-blur-xl border border-gray-200 dark:border-primary-900/40 rounded-xl shadow-lg z-[100]">
       <div className="p-4 border-b border-gray-200 dark:border-primary-900/50">
         <div className="flex items-center space-x-3">
           <div className="relative">
@@ -19,9 +19,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ currentUser }) => {
               currentUser.status === 'online' ? 'bg-green-400' : 'bg-gray-400 dark:bg-dark-400'
             }`}></div>
           </div>
-          <div>
-            <p className="font-semibold text-black dark:text-dark-50">{currentUser.name}</p>
-            <p className="text-gray-600 dark:text-dark-300 text-sm">{currentUser.email}</p>
+          <div className="overflow-hidden">
+            <p className="font-semibold text-black dark:text-dark-50 truncate">{currentUser.name}</p>
+            <p className="text-gray-600 dark:text-dark-300 text-sm truncate">{currentUser.email}</p>
             <p className="text-gray-500 dark:text-dark-400 text-xs capitalize">{currentUser.role} - {currentUser.status}</p>
           </div>
         </div>

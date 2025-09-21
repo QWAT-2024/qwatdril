@@ -8,9 +8,13 @@ interface DashboardViewProps {
   users: any[];
   reports: any[];
   setCurrentView: (view: string) => void;
+  superusers: { id: string; email: string; organization: string; }[];
 }
 
-function DashboardView({ projects, users, reports, setCurrentView }: DashboardViewProps) {
+function DashboardView({ projects, users, reports, setCurrentView, superusers }: DashboardViewProps) {
+  const superuserEmails = superusers.map(su => su.email);
+  const teamMembers = users.filter(u => !superuserEmails.includes(u.email));
+
   const stats = [
     {
       label: 'Active Projects',
@@ -18,15 +22,13 @@ function DashboardView({ projects, users, reports, setCurrentView }: DashboardVi
       icon: FolderOpen,
       color: 'text-primary-400', // Changed to primary blue
       bg: 'bg-primary-400/20',     // Changed to primary blue
-      change: '+12%'
     },
     {
       label: 'Team Members',
-      value: users.length,
+      value: teamMembers.length,
       icon: Users,
       color: 'text-green-400',
       bg: 'bg-green-400/20',
-      change: '+5%'
     },
     {
       label: 'Reports Published',
@@ -34,7 +36,6 @@ function DashboardView({ projects, users, reports, setCurrentView }: DashboardVi
       icon: FileText,
       color: 'text-yellow-400',
       bg: 'bg-yellow-400/20',
-      change: '+23%'
     }
   ];
 
@@ -48,7 +49,6 @@ function DashboardView({ projects, users, reports, setCurrentView }: DashboardVi
               <div>
                 <p className="text-gray-600 dark:text-dark-400 text-sm font-medium">{stat.label}</p>
                 <p className="text-2xl font-bold text-black dark:text-dark-50 mt-1">{stat.value}</p>
-                <p className="text-green-600 dark:text-green-400 text-xs mt-1">{stat.change} from last month</p>
               </div>
               <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
                 <stat.icon className={`w-6 h-6 ${stat.color}`} />
@@ -81,7 +81,7 @@ function DashboardView({ projects, users, reports, setCurrentView }: DashboardVi
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex -space-x-2">
-                    {project.assignedUsers.slice(0, 3).map((userId: string, idx: number) => {
+                    {(project.assignedUsers || []).slice(0, 3).map((userId: string, idx: number) => {
                       const user = users.find(u => u.id === userId);
                       return (
                         <div key={idx} className="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-xs text-white border-2 border-white dark:border-dark-900">
@@ -131,9 +131,12 @@ function DashboardView({ projects, users, reports, setCurrentView }: DashboardVi
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Team Status */}
         <div className="bg-white dark:bg-dark-900/50 backdrop-blur-xl border border-gray-300 dark:border-dark-700 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-black dark:text-dark-50 mb-4">Team Status</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-black dark:text-dark-50">Team Status</h3>
+            <button onClick={() => setCurrentView('team')} className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium transition-colors duration-200">View All</button>
+          </div>
           <div className="space-y-3">
-            {users.slice(0, 4).map((user) => (
+            {teamMembers.slice(0, 4).map((user) => (
               <div key={user.id} className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-sm text-white">
                   {user.avatar}

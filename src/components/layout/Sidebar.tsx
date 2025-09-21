@@ -12,7 +12,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, sidebarOpen, setSidebarOpen, menuItems }) => {
   return (
-    <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-100 dark:bg-dark-950/80 backdrop-blur-xl border-r border-gray-300 dark:border-primary-900/40 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+<div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-100 dark:bg-dark-950/80 backdrop-blur-xl border-r border-gray-300 dark:border-primary-900/40 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col`}>
       <div className="flex items-center justify-between p-6 border-b border-gray-300 dark:border-primary-900/50">
         <div className="flex items-center space-x-3">
           <img src="https://firebasestorage.googleapis.com/v0/b/qwat-9aaab.appspot.com/o/Qwat%20innovations%2FLogo-dark.svg?alt=media&token=3c95d22b-8feb-473c-917f-deda4ed417ef" alt="Qwatdril Logo" className="w-10 h-10" />
@@ -32,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, sidebarO
         </button>
       </div>
 
-      <nav className="p-4 space-y-2">
+      <nav className="p-4 space-y-2 flex-grow overflow-y-auto">
         {menuItems.map((item) => (
           <div key={item.id} className="relative">
             <button
@@ -51,15 +51,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, sidebarO
             </button>
             {currentView === item.id && (
               <>
-                <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-8 border-r-primary-500" />
-                <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-primary-500" />
+              
               </>
             )}
           </div>
         ))}
       </nav>
 
-      <div className="absolute bottom-4 left-4 right-4">
+      <div className="p-4">
         <button
           onClick={() => auth.signOut()}
           className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-dark-300 hover:text-white dark:hover:text-white hover:bg-primary-600 dark:hover:bg-dark-800/50 rounded-xl transition-all duration-200"

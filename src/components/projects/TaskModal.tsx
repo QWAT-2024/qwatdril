@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Plus, Trash2, CheckSquare, Calendar, Type, Link as LinkIcon, Paperclip, ChevronDown } from 'lucide-react';
 import { db, doc, setDoc, getDoc } from '../../firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 interface TaskModalProps {
   project: any;
@@ -9,13 +10,22 @@ interface TaskModalProps {
   currentUser: any;
 }
 
+interface Column {
+  id: string;
+  title: string;
+  type: 'text' | 'date' | 'checkbox' | 'status' | 'file' | 'url';
+  options?: string[]; // For status type
+}
+
 interface Row {
   [key: string]: any;
 }
 
 const TaskModal: React.FC<TaskModalProps> = ({ project, onClose, isSuperuser, currentUser }) => {
-  const [columns, setColumns] = useState([{ id: 'taskName', title: 'Task Name' }]);
-  const [rows, setRows] = useState<Row[]>([{}]);
+  const [columns, setColumns] = useState<Column[]>([{ id: 'taskName', title: 'Task Name', type: 'text' }]);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [showAddColumnMenu, setShowAddColumnMenu] = useState(false);
+  const addColumnMenuRef = useRef<HTMLDivElement>(null);
   const canEdit = isSuperuser || project.teamLead === currentUser?.id || currentUser?.role === 'Project Manager';
 
   useEffect(() => {
@@ -31,21 +41,77 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, onClose, isSuperuser, cu
     fetchTasks();
   }, [project.id, canEdit]); // Added canEdit dependency
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (addColumnMenuRef.current && !addColumnMenuRef.current.contains(event.target as Node)) {
+        setShowAddColumnMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [addColumnMenuRef]);
+
   const handleColumnChange = (index: number, value: string) => {
     const newColumns = [...columns];
     newColumns[index].title = value;
     setColumns(newColumns);
   };
 
-  const handleCellChange = (rowIndex: number, columnId: string, value: string) => {
+  const handleCellChange = (rowIndex: number, columnId: string, value: any) => {
     const newRows = [...rows];
     newRows[rowIndex][columnId] = value;
     setRows(newRows);
   };
 
-  const addColumn = () => {
+  const handleFileChange = async (rowIndex: number, columnId: string, file: File) => {
+    if (!file) return;
+    const storage = getStorage();
+    const storageRef = ref(storage, `projects/${project.id}/${columnId}/${file.name}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    handleCellChange(rowIndex, columnId, { name: file.name, url: downloadURL });
+  };
+
+  const renderCell = (col: Column, row: Row, rowIndex: number) => {
+    const value = row[col.id];
+    switch (col.type) {
+      case 'date':
+        return <input type="date" value={value || ''} onChange={(e) => handleCellChange(rowIndex, col.id, e.target.value)} className="bg-transparent w-full" disabled={!canEdit} />;
+      case 'checkbox':
+        return <input type="checkbox" checked={!!value} onChange={(e) => handleCellChange(rowIndex, col.id, e.target.checked)} className="mx-auto block" disabled={!canEdit} />;
+      case 'status':
+        return (
+          <select value={value || ''} onChange={(e) => handleCellChange(rowIndex, col.id, e.target.value)} className="bg-transparent w-full" disabled={!canEdit}>
+            {col.options?.map(option => <option key={option} value={option}>{option}</option>)}
+          </select>
+        );
+      case 'file':
+        return (
+          <div>
+            {value ? (
+              <a href={value.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{value.name}</a>
+            ) : (
+              <input type="file" onChange={(e) => e.target.files && handleFileChange(rowIndex, col.id, e.target.files[0])} className="w-full" disabled={!canEdit} />
+            )}
+          </div>
+        );
+      case 'url':
+        return <input type="url" value={value || ''} onChange={(e) => handleCellChange(rowIndex, col.id, e.target.value)} className="bg-transparent w-full" disabled={!canEdit} />;
+      default:
+        return <input type="text" value={value || ''} onChange={(e) => handleCellChange(rowIndex, col.id, e.target.value)} className="bg-transparent w-full" disabled={!canEdit} />;
+    }
+  };
+
+  const addColumn = (type: Column['type']) => {
     if (!canEdit) return;
-    setColumns([...columns, { id: `col-${Date.now()}`, title: 'New Column' }]);
+    let newColumn: Column = { id: `col-${Date.now()}`, title: 'New Column', type };
+    if (type === 'status') {
+      newColumn.options = ['To Do', 'In Progress', 'Done'];
+    }
+    setColumns([...columns, newColumn]);
+    setShowAddColumnMenu(false);
   };
 
   const deleteColumn = (index: number) => {
@@ -82,7 +148,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, onClose, isSuperuser, cu
             <X className="w-6 h-6" />
           </button>
         </div>
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-6">
           <table className="w-full text-black dark:text-dark-100">
             <thead>
               <tr>
@@ -103,10 +169,20 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, onClose, isSuperuser, cu
                   </th>
                 ))}
                 {canEdit && (
-                  <th className="p-2 border border-gray-300 dark:border-dark-700">
-                    <button onClick={addColumn} className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300">
+                  <th className="p-2 border border-gray-300 dark:border-dark-700 relative">
+                    <button onClick={() => setShowAddColumnMenu(!showAddColumnMenu)} className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300">
                       <Plus />
                     </button>
+                    {showAddColumnMenu && (
+                      <div ref={addColumnMenuRef} className="absolute top-full right-0 mt-2 bg-white dark:bg-dark-800 border dark:border-dark-700 rounded-md shadow-lg z-10">
+                        <button onClick={() => addColumn('text')} className="flex items-center w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-200 hover:bg-gray-100 dark:hover:bg-dark-700"><Type className="mr-2" size={16} /> Text</button>
+                        <button onClick={() => addColumn('date')} className="flex items-center w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-200 hover:bg-gray-100 dark:hover:bg-dark-700"><Calendar className="mr-2" size={16} /> Date</button>
+                        <button onClick={() => addColumn('checkbox')} className="flex items-center w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-200 hover:bg-gray-100 dark:hover:bg-dark-700"><CheckSquare className="mr-2" size={16} /> Checkbox</button>
+                        <button onClick={() => addColumn('status')} className="flex items-center w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-200 hover:bg-gray-100 dark:hover:bg-dark-700"><ChevronDown className="mr-2" size={16} /> Status</button>
+                        <button onClick={() => addColumn('file')} className="flex items-center w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-200 hover:bg-gray-100 dark:hover:bg-dark-700"><Paperclip className="mr-2" size={16} /> File</button>
+                        <button onClick={() => addColumn('url')} className="flex items-center w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-dark-200 hover:bg-gray-100 dark:hover:bg-dark-700"><LinkIcon className="mr-2" size={16} /> URL</button>
+                      </div>
+                    )}
                   </th>
                 )}
               </tr>
@@ -116,13 +192,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, onClose, isSuperuser, cu
                 <tr key={rowIndex} className="group">
                   {columns.map(col => (
                     <td key={col.id} className="p-2 border border-gray-300 dark:border-dark-700">
-                      <input
-                        type="text"
-                        value={row[col.id] || ''}
-                        onChange={(e) => handleCellChange(rowIndex, col.id, e.target.value)}
-                        className="bg-transparent w-full disabled:cursor-not-allowed"
-                        disabled={!canEdit}
-                      />
+                      {renderCell(col, row, rowIndex)}
                     </td>
                   ))}
                   {canEdit && (

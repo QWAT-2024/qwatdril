@@ -81,20 +81,21 @@ const LandingPage = ({ setView }: { setView: (view: string) => void }) => {
       <Header />
       <main className="flex-grow overflow-y-auto">
         <div className="container mx-auto px-6 pt-12 pb-12">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+          <div className="flex flex-col-reverse md:flex-row items-center justify-center gap-8">
             <motion.div
               className="pl-6 md:w-2/5 lg:w-2/5 max-w-xl"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
-              <motion.h1 variants={itemVariants} className="text-6xl font-bold mb-4 mt-4 font-serif-custom">
+              {/* Added whitespace-nowrap here */}
+              <motion.h1 variants={itemVariants} className="text-4xl md:text-6xl font-bold mb-4 mt-4 font-serif-custom whitespace-nowrap">
                 Welcome to Qwatdril
               </motion.h1>
-              <motion.p variants={itemVariants} className="text-2xl font-semibold mb-8">
+              <motion.p variants={itemVariants} className="text-lg md:text-2xl font-semibold mb-8">
                 Your Complete Project Management & Collaboration Solution
               </motion.p>
-              <motion.p variants={itemVariants} className="text-xl mb-8">
+              <motion.p variants={itemVariants} className="text-base md:text-xl mb-8">
                 Qwatdril is a modern, cloud-based Project Management Tool that
                 helps teams plan, track, and deliver projects effortlessly.
                 Whether you're managing a single project or handling multiple
@@ -117,14 +118,6 @@ const LandingPage = ({ setView }: { setView: (view: string) => void }) => {
                   whileTap={{ scale: 0.95 }}
                 >
                   Register
-                </motion.button>
-                <motion.button
-                  onClick={() => setView('admin')}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-semibold"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Admin Login
                 </motion.button>
               </motion.div>
             </motion.div>

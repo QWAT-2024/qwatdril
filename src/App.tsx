@@ -29,9 +29,11 @@ import {
   Home,
   FolderOpen,
   Archive,
+  Database,
 } from 'lucide-react';
 import MyCalendar from './components/calender/Calendar';
 import DashboardView from './components/dashboard/DashboardView';
+import TaskDatabaseView from './components/tasks/TaskDatabaseView';
 import Admin from './components/admin/Admin';
 import NotificationDropdown from './components/layout/NotificationDropdown';
 import ProfileDropdown from './components/layout/ProfileDropdown';
@@ -61,6 +63,7 @@ const superuserMenuItems = [
   { id: 'team', label: 'Team', icon: Users },
   { id: 'collaboration', label: 'Collaboration', icon: MessageSquare },
   { id: 'files', label: 'Files', icon: Archive },
+  { id: 'task-database', label: 'Task Database', icon: Database },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
 ];
 
@@ -86,6 +89,8 @@ function App() {
   const [projects, setProjects] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
+  const [organization, setOrganization] = useState<string | null>(null);
+  const [superusers, setSuperusers] = useState<Superuser[]>([]);
 
   const profileDropdownRef = useRef<HTMLDivElement>(null);
   const currentUser = users.find(u => u.email === user?.email) || null;
@@ -111,23 +116,47 @@ function App() {
         const superusersCollection = collection(db, 'superusers');
         const superusersSnapshot = await getDocs(superusersCollection);
         const superusersList = superusersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Superuser[];
+        setSuperusers(superusersList);
         const superuserRecord = superusersList.find(su => su.email === user.email);
+
+        let org: string | null = null;
+        const savedView = localStorage.getItem('currentView');
 
         if (superuserRecord) {
           setIsSuperuser(true);
           setSuperuserInfo(superuserRecord);
-          setCurrentView('dashboard');
+          org = superuserRecord.organization;
+          if (!savedView || !superuserMenuItems.some(item => item.id === savedView)) {
+            setCurrentView('dashboard');
+          }
         } else {
           setIsSuperuser(false);
           setSuperuserInfo(null);
-          setCurrentView('projects');
+          const usersQuery = query(collection(db, 'users'), where("email", "==", user.email));
+          const userSnapshot = await getDocs(usersQuery);
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            org = userData.organization;
+          }
+          if (!savedView || !regularUserMenuItems.some(item => item.id === savedView)) {
+            setCurrentView('projects');
+          }
         }
 
-        await fetchData();
+        setOrganization(org);
+
+        if (org) {
+          await fetchData(org);
+        }
       } else {
         setUser(null);
         setIsSuperuser(false);
         setSuperuserInfo(null);
+        setOrganization(null);
+        setProjects([]);
+        setUsers([]);
+        setReports([]);
+        setSuperusers([]);
       }
       setIsLoading(false);
     });
@@ -170,21 +199,28 @@ function App() {
   }, [currentUser?.id]);
 
 
-  const fetchData = async () => {
+  const fetchData = async (org: string) => {
+    if (!org) return;
     try {
-      const projectsCollection = collection(db, 'projects');
-      const projectsSnapshot = await getDocs(projectsCollection);
+      const projectsQuery = query(collection(db, 'projects'), where("organization", "==", org));
+      const projectsSnapshot = await getDocs(projectsQuery);
       setProjects(projectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-      const usersCollection = collection(db, 'users');
-      const usersSnapshot = await getDocs(usersCollection);
+      const usersQuery = query(collection(db, 'users'), where("organization", "==", org));
+      const usersSnapshot = await getDocs(usersQuery);
       setUsers(usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-      const reportsCollection = collection(db, 'reports');
-      const reportsSnapshot = await getDocs(reportsCollection);
+      const reportsQuery = query(collection(db, 'reports'), where("organization", "==", org));
+      const reportsSnapshot = await getDocs(reportsQuery);
       setReports(reportsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
       console.error('Error fetching data:', error);
+    }
+  };
+
+  const refetchData = () => {
+    if (organization) {
+      fetchData(organization);
     }
   };
 
@@ -222,7 +258,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-dark-950 text-gray-800 dark:text-dark-100">
       {showProfileDropdown && (
-        <div ref={profileDropdownRef} className="absolute top-16 right-6 z-[100]">
+        <div ref={profileDropdownRef} className="absolute top-0 right-6 z-[100]">
           <ProfileDropdown currentUser={currentUser} />
         </div>
       )}
@@ -239,14 +275,14 @@ function App() {
         <Header currentView={currentView} setSidebarOpen={setSidebarOpen} showProfileDropdown={showProfileDropdown} setShowProfileDropdown={setShowProfileDropdown} />
 
         <main className="p-6">
-          {currentView === 'dashboard' && isSuperuser && <DashboardView projects={projects} users={users} reports={reports} setCurrentView={setCurrentView} />}
+          {currentView === 'dashboard' && isSuperuser && <DashboardView projects={projects} users={users} reports={reports} setCurrentView={setCurrentView} superusers={superusers} />}
           {currentView === 'projects' && (
             <ProjectsView
               currentUser={currentUser}
               projects={projects}
               users={users}
               reports={reports}
-              onProjectAdded={fetchData}
+              onProjectAdded={refetchData}
               isSuperuser={isSuperuser}
               superuserInfo={superuserInfo}
             />
@@ -257,14 +293,15 @@ function App() {
               reports={reports}
               projects={projects}
               users={users}
-              onReportAdded={fetchData}
+              onReportAdded={refetchData}
               isSuperuser={isSuperuser}
               superuserInfo={superuserInfo}
             />
           )}
-          {currentView === 'team' && isSuperuser && <TeamView currentUser={currentUser} users={users} projects={projects} onUserAdded={fetchData} isSuperuser={isSuperuser} superuserInfo={superuserInfo} />}
+          {currentView === 'team' && isSuperuser && <TeamView currentUser={currentUser} users={users} projects={projects} onUserAdded={refetchData} isSuperuser={isSuperuser} superuserInfo={superuserInfo} />}
           {currentView === 'collaboration' && currentUser && <CollaborationView currentUser={currentUser} isSuperuser={isSuperuser} superuserInfo={superuserInfo} />}
           {currentView === 'files' && isSuperuser && <FilesView projects={projects} users={users} currentUser={currentUser} />}
+          {currentView === 'task-database' && isSuperuser && <TaskDatabaseView />}
           {currentView === 'calendar' && isSuperuser && <MyCalendar />}
           {currentView === 'admin' && isSuperuser && <Admin />}
           {currentView === 'settings' && isSuperuser && <SettingsView />}

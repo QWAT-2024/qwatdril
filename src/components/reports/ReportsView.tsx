@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { db, doc, deleteDoc } from '../../firebase/firestore';
+import { getStorage, ref, deleteObject } from "firebase/storage";
 import { Plus, Eye, Edit, Trash2, Share2, Paperclip } from 'lucide-react';
 import ReportDetailModal from './ReportDetailModal';
 import CreateReportModal from './CreateReportModal';
@@ -110,6 +111,13 @@ function ReportsView({ currentUser, reports, projects, users, onReportAdded, isS
                         </button>
                         <button onClick={async () => {
                           if (window.confirm('Are you sure you want to delete this report?')) {
+                            const storage = getStorage();
+                            if (report.attachments && report.attachments.length > 0) {
+                              for (const attachment of report.attachments) {
+                                const fileRef = ref(storage, attachment.url);
+                                await deleteObject(fileRef);
+                              }
+                            }
                             await deleteDoc(doc(db, 'reports', report.id));
                             onReportAdded();
                           }
@@ -120,13 +128,13 @@ function ReportsView({ currentUser, reports, projects, users, onReportAdded, isS
                     )}
 
                   </div>
-                  <button onClick={() => {
-                    if (report.attachments && report.attachments.length > 0) {
-                      window.open(report.attachments[0].url, '_blank');
-                    }
-                  }} className="text-primary-500 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 text-sm font-medium transition-colors duration-200">
-                    View Full Report
-                  </button>
+                  <a
+                    href={report.attachments[0]?.url}
+                    download={report.attachments[0]?.name}
+                    className="text-primary-500 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 text-sm font-medium transition-colors duration-200"
+                  >
+                    Download Report
+                  </a>
                 </div>
               </div>
             );

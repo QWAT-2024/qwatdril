@@ -1,13 +1,14 @@
 import React from 'react';
-import { X, GitBranch, Globe, Monitor, ExternalLink } from 'lucide-react';
+import { X, GitBranch, Globe, Monitor, ExternalLink, Paperclip, Download } from 'lucide-react';
 
 interface ProjectDetailModalProps {
   project: any;
   users: any[];
+  reports: any[];
   onClose: () => void;
 }
 
-function ProjectDetailModal({ project, users, onClose }: ProjectDetailModalProps) {
+function ProjectDetailModal({ project, users, reports, onClose }: ProjectDetailModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white dark:bg-dark-900 border border-gray-200 dark:border-primary-700/30 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -129,26 +130,52 @@ function ProjectDetailModal({ project, users, onClose }: ProjectDetailModalProps
           </div>
 
           {/* Recent Reports */}
-          <div>
-            <h3 className="text-black dark:text-dark-50 font-semibold mb-3">Recent Reports</h3>
-            <div className="space-y-2">
-              {project.reports.map((report: any) => (
-                <div key={report.id} className="flex items-center justify-between p-3 bg-gray-100 dark:bg-dark-800/30 rounded-lg">
-                  <div>
-                    <p className="text-black dark:text-dark-50 font-medium">{report.title}</p>
-                    <p className="text-gray-600 dark:text-dark-400 text-sm">{report.date}</p>
+          {reports && reports.length > 0 && (
+            <div>
+              <h3 className="text-black dark:text-dark-50 font-semibold mb-3">Recent Reports</h3>
+              <div className="space-y-2">
+                {reports.map((report: any) => (
+                  <div key={report.id} className="p-3 bg-gray-100 dark:bg-dark-800/30 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-black dark:text-dark-50 font-medium">{report.title}</p>
+                        <p className="text-gray-600 dark:text-dark-400 text-sm">{report.date}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        report.type === 'progress' ? 'text-primary-600 bg-primary-100 dark:text-primary-400 dark:bg-primary-400/20' :
+                        report.type === 'bug' ? 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-400/20' :
+                        'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-400/20'
+                      }`}>
+                        {report.type}
+                      </span>
+                    </div>
+                    {report.attachments && report.attachments.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {report.attachments.map((attachment: { name: string, url: string }, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-gray-200 dark:bg-dark-700/50 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <Paperclip className="w-4 h-4 text-gray-500 dark:text-dark-400" />
+                              <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-black dark:text-dark-50 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                                {attachment.name}
+                              </a>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors duration-200">
+                                View
+                              </a>
+                              <a href={attachment.url} download={attachment.name} className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors duration-200">
+                                <Download className="w-4 h-4" />
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    report.type === 'progress' ? 'text-primary-600 bg-primary-100 dark:text-primary-400 dark:bg-primary-400/20' : 
-                    report.type === 'bug' ? 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-400/20' : 
-                    'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-400/20'
-                  }`}>
-                    {report.type}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -93,9 +93,14 @@ function ReportDetailModal({ report, project, author, onClose }: ReportDetailMod
                         {attachment.name}
                       </a>
                     </div>
-                    <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors duration-200">
-                      <Download className="w-4 h-4" />
-                    </a>
+                    <div className="flex items-center space-x-2">
+                      <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors duration-200">
+                        View
+                      </a>
+                      <a href={attachment.url} download={attachment.name} className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors duration-200">
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
