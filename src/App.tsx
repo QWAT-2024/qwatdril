@@ -271,10 +271,10 @@ function App() {
         menuItems={menuItems}
       />
 
-      <div className="lg:ml-64">
+      <div className="lg:ml-64 flex flex-col h-screen">
         <Header currentView={currentView} setSidebarOpen={setSidebarOpen} showProfileDropdown={showProfileDropdown} setShowProfileDropdown={setShowProfileDropdown} />
 
-        <main className="p-6">
+        <main className="p-6 overflow-y-auto">
           {currentView === 'dashboard' && isSuperuser && <DashboardView projects={projects} users={users} reports={reports} setCurrentView={setCurrentView} superusers={superusers} />}
           {currentView === 'projects' && (
             <ProjectsView
