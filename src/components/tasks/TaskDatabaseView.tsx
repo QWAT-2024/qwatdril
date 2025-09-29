@@ -6,8 +6,8 @@ import {
   Star, Edit, Copy, ArrowRight, X, Check, Settings, Eye, EyeOff, GripVertical
 } from 'lucide-react';
 
-// Dropdown component (without portal)
-const Dropdown = ({ trigger, children, menuClassName = '' }) => {
+// Dropdown component
+const Dropdown = ({ trigger, children, menuClassName = '', align = 'left' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
@@ -25,26 +25,37 @@ const Dropdown = ({ trigger, children, menuClassName = '' }) => {
     }
   }, [isOpen]);
 
+  const alignmentClass = align === 'right' ? 'right-0' : 'left-0';
+
   return (
     <div className="relative inline-block" ref={triggerRef}>
       <div onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }} className="cursor-pointer">
         {trigger}
       </div>
       {isOpen && (
-        <div ref={menuRef} onClick={(e) => e.stopPropagation()} 
-             className={`absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 ${menuClassName}`}>
-          {children}
+        <div 
+          ref={menuRef} 
+          onClick={(e) => e.stopPropagation()} 
+          className={`absolute ${alignmentClass} top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] ${menuClassName}`}
+        >
+          {typeof children === 'function' ? children(() => setIsOpen(false)) : children}
         </div>
       )}
     </div>
   );
 };
 
-// Multi-select dropdown for Select/Multi-select properties
-const MultiSelectDropdown = ({ value = [], options = [], onChange, isMulti = false, onAddOption }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [newOption, setNewOption] = useState('');
+// Status/Select Cell Editor
+const StatusSelectEditor = ({ value, options, onChange, isMulti = false, onAddOption }) => {
+  const [searchTerm, setSearchTerm] = useState('');
   const selectedValues = Array.isArray(value) ? value : (value ? [value] : []);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
 
   const toggleOption = (option) => {
     if (isMulti) {
@@ -54,14 +65,14 @@ const MultiSelectDropdown = ({ value = [], options = [], onChange, isMulti = fal
       onChange(newValues);
     } else {
       onChange(option);
-      setIsOpen(false);
     }
   };
 
   const handleAddOption = () => {
-    if (newOption.trim() && !options.includes(newOption.trim())) {
-      onAddOption(newOption.trim());
-      setNewOption('');
+    if (searchTerm.trim() && !options.includes(searchTerm.trim())) {
+      onAddOption(searchTerm.trim());
+      toggleOption(searchTerm.trim());
+      setSearchTerm('');
     }
   };
 
@@ -77,74 +88,64 @@ const MultiSelectDropdown = ({ value = [], options = [], onChange, isMulti = fal
     return type === 'bg' ? colorPairs[index].bg : colorPairs[index].text;
   };
 
+  const filteredOptions = options.filter(opt => 
+    opt.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="relative w-full">
-      <div onClick={() => setIsOpen(!isOpen)} 
-           className="flex flex-wrap gap-1 p-2 border border-gray-300 rounded cursor-pointer hover:border-gray-400 min-h-[36px]">
-        {selectedValues.length > 0 ? (
-          selectedValues.map(val => (
-            <span key={val} className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getColorClass(val, 'bg')} ${getColorClass(val, 'text')}`}>
-              {val}
-              {isMulti && (
-                <X size={12} className="ml-1 cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleOption(val); }} />
-              )}
-            </span>
-          ))
-        ) : (
-          <span className="text-gray-400 text-sm">Select...</span>
+    <div className="absolute top-0 left-0 w-full bg-white border border-blue-500 rounded shadow-lg z-[10000] max-h-64 overflow-y-auto">
+      <div className="p-2 border-b border-gray-200 sticky top-0 bg-white">
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Search or create..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (filteredOptions.length > 0) {
+                toggleOption(filteredOptions[0]);
+              } else {
+                handleAddOption();
+              }
+            }
+          }}
+          className="w-full p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+      </div>
+      <div className="py-1">
+        {filteredOptions.map(option => {
+          const isSelected = selectedValues.includes(option);
+          return (
+            <div
+              key={option}
+              onClick={() => toggleOption(option)}
+              className="flex items-center justify-between px-3 py-2 hover:bg-gray-100 cursor-pointer"
+            >
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getColorClass(option, 'bg')} ${getColorClass(option, 'text')}`}>
+                {option}
+              </span>
+              {isSelected && <Check size={16} className="text-blue-600" />}
+            </div>
+          );
+        })}
+        {searchTerm.trim() && !options.includes(searchTerm.trim()) && (
+          <div
+            onClick={handleAddOption}
+            className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer text-blue-600"
+          >
+            <Plus size={16} className="mr-2" />
+            Create "{searchTerm}"
+          </div>
         )}
       </div>
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-          <div className="p-2">
-            <input
-              type="text"
-              placeholder="Search or create..."
-              value={newOption}
-              onChange={(e) => setNewOption(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddOption();
-                }
-              }}
-              className="w-full p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="py-1">
-            {options.map(option => {
-              const isSelected = selectedValues.includes(option);
-              return (
-                <div
-                  key={option}
-                  onClick={() => toggleOption(option)}
-                  className="flex items-center justify-between px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getColorClass(option, 'bg')} ${getColorClass(option, 'text')}`}>
-                    {option}
-                  </span>
-                  {isSelected && <Check size={16} className="text-blue-600" />}
-                </div>
-              );
-            })}
-            {newOption.trim() && !options.includes(newOption.trim()) && (
-              <div
-                onClick={handleAddOption}
-                className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer text-blue-600"
-              >
-                <Plus size={16} className="mr-2" />
-                Create "{newOption}"
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
 // Column Settings Menu
-const ColumnSettingsMenu = ({ column, onUpdate, onDelete, onClose }) => {
+const ColumnSettingsMenu = ({ column, onUpdate, onDelete, onCloseMenu }) => {
   const [editingTitle, setEditingTitle] = useState(column.title);
   const [editingOptions, setEditingOptions] = useState(column.options || []);
 
@@ -156,7 +157,7 @@ const ColumnSettingsMenu = ({ column, onUpdate, onDelete, onClose }) => {
     <div className="w-80 p-3">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-gray-800">Edit property</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <button onClick={onCloseMenu} className="text-gray-400 hover:text-gray-600">
           <X size={16} />
         </button>
       </div>
@@ -215,7 +216,7 @@ const ColumnSettingsMenu = ({ column, onUpdate, onDelete, onClose }) => {
 
         <div className="pt-3 border-t border-gray-200">
           <button
-            onClick={() => { onDelete(column.id); onClose(); }}
+            onClick={() => { onDelete(column.id); onCloseMenu(); }}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
           >
             <Trash2 size={16} />
@@ -236,7 +237,7 @@ const RowContextMenu = ({ rowId, onClose, onDelete, onDuplicate }) => {
     { label: 'Open in new tab', icon: <Link2 size={16} />, action: onClose },
     { label: 'Copy link', icon: <Copy size={16} />, action: onClose },
     { label: 'Duplicate', icon: <Copy size={16} />, shortcut: 'Ctrl+D', action: () => { onDuplicate(rowId); onClose(); } },
-    { label: 'Delete', icon: <Trash2 size={16} />, shortcut: 'Del', action: () => onDelete(rowId), danger: true },
+    { label: 'Delete', icon: <Trash2 size={16} />, shortcut: 'Del', action: () => { onDelete(rowId); onClose(); }, danger: true },
   ];
 
   const filteredItems = menuItems.filter(item => 
@@ -276,14 +277,30 @@ const RowContextMenu = ({ rowId, onClose, onDelete, onDuplicate }) => {
 };
 
 // Enhanced Editable Cell
-const EditableCell = ({ value, onSave, column }) => {
+const EditableCell = ({ value, onSave, column, onUpdateColumnOptions }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
   const inputRef = useRef(null);
+  const cellRef = useRef(null);
 
   useEffect(() => {
     setCurrentValue(value);
   }, [value]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (cellRef.current && !cellRef.current.contains(event.target)) {
+        if (isEditing) {
+          handleSave();
+        }
+      }
+    };
+
+    if (isEditing) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isEditing, currentValue]);
 
   const handleSave = () => {
     onSave(currentValue);
@@ -291,18 +308,20 @@ const EditableCell = ({ value, onSave, column }) => {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && column.type !== 'text') handleSave();
-    else if (e.key === 'Escape') {
+    if (e.key === 'Enter' && column.type !== 'text') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
       setCurrentValue(value);
       setIsEditing(false);
     }
   };
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
+    if (isEditing && inputRef.current && column.type !== 'status' && column.type !== 'select' && column.type !== 'multiselect') {
       inputRef.current.focus();
     }
-  }, [isEditing]);
+  }, [isEditing, column.type]);
 
   const getColorClass = (val, type = 'bg') => {
     const colorPairs = [
@@ -357,7 +376,7 @@ const EditableCell = ({ value, onSave, column }) => {
         );
       case 'url':
         return value ? (
-          <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+          <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <Link2 size={14} />
             {value}
           </a>
@@ -378,7 +397,7 @@ const EditableCell = ({ value, onSave, column }) => {
     const commonProps = {
       ref: inputRef,
       onKeyDown: handleKeyDown,
-      className: "w-full p-2 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className: "w-full p-2 border-0 rounded focus:outline-none bg-transparent"
     };
 
     switch (column.type) {
@@ -396,7 +415,7 @@ const EditableCell = ({ value, onSave, column }) => {
       case 'select':
       case 'multiselect':
         return (
-          <MultiSelectDropdown
+          <StatusSelectEditor
             value={currentValue}
             options={column.options || []}
             onChange={(val) => {
@@ -406,7 +425,8 @@ const EditableCell = ({ value, onSave, column }) => {
             }}
             isMulti={column.type === 'multiselect'}
             onAddOption={(newOpt) => {
-              console.log('Add option:', newOpt);
+              const newOptions = [...(column.options || []), newOpt];
+              onUpdateColumnOptions(column.id, newOptions);
             }}
           />
         );
@@ -467,28 +487,36 @@ const EditableCell = ({ value, onSave, column }) => {
   };
 
   if (column.type === 'checkbox') {
-    return renderDisplay();
-  }
-
-  if (isEditing) {
-    return <div className="w-full">{renderEditor()}</div>;
+    return (
+      <div className="p-2 text-center">
+        {renderDisplay()}
+      </div>
+    );
   }
 
   return (
-    <div
-      onClick={(e) => {
-        e.stopPropagation();
-        setIsEditing(true);
-      }}
-      className="w-full h-full cursor-pointer p-2 hover:bg-gray-50 rounded"
-    >
-      {renderDisplay()}
+    <div ref={cellRef} className="relative min-h-[40px]">
+      {isEditing ? (
+        <div className="p-2 bg-blue-50 border border-blue-500 rounded">
+          {renderEditor()}
+        </div>
+      ) : (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(true);
+          }}
+          className="p-2 cursor-pointer hover:bg-gray-50 rounded min-h-[40px] flex items-center"
+        >
+          {renderDisplay()}
+        </div>
+      )}
     </div>
   );
 };
 
 // Add Property Menu
-const AddPropertyMenu = ({ onAddColumn }) => {
+const AddPropertyMenu = ({ onAddColumn, onCloseMenu }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const propertyTypes = [
@@ -527,7 +555,7 @@ const AddPropertyMenu = ({ onAddColumn }) => {
           {filteredProperties.map(p => (
             <button
               key={p.name}
-              onClick={() => { onAddColumn(p.type, p.name); }}
+              onClick={() => { onAddColumn(p.type, p.name); onCloseMenu(); }}
               className="flex items-start w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded group"
             >
               <div className="mt-0.5 mr-3 text-gray-500">{p.icon}</div>
@@ -558,10 +586,8 @@ function TaskDatabaseView() {
     { id: 'row3', col1: 'Update documentation', col2: 'Done', col3: '2025-10-05', col4: 'Mike Johnson', createdAt: Date.now() + 2 },
   ]);
   
-  const [contextMenu, setContextMenu] = useState(null);
   const [rowHover, setRowHover] = useState(null);
   const [selectedRows, setSelectedRows] = useState(new Set());
-  const [editingColumn, setEditingColumn] = useState(null);
 
   const propertyIcons = {
     text: <FileText size={16} />,
@@ -584,6 +610,12 @@ function TaskDatabaseView() {
     ));
   };
 
+  const updateColumnOptions = (colId, newOptions) => {
+    setColumns(prev => prev.map(col =>
+      col.id === colId ? { ...col, options: newOptions } : col
+    ));
+  };
+
   const addColumn = (type, title) => {
     const newColumn = {
       id: `col${Date.now()}`,
@@ -602,7 +634,6 @@ function TaskDatabaseView() {
     setColumns(prev => prev.map(col =>
       col.id === updatedColumn.id ? updatedColumn : col
     ));
-    setEditingColumn(null);
   };
 
   const deleteColumn = (colId) => {
@@ -611,7 +642,6 @@ function TaskDatabaseView() {
       const { [colId]: _, ...rest } = row;
       return rest;
     }));
-    setEditingColumn(null);
   };
 
   const addRow = () => {
@@ -629,7 +659,11 @@ function TaskDatabaseView() {
       newSet.delete(rowId);
       return newSet;
     });
-    setContextMenu(null);
+  };
+
+  const deleteSelectedRows = () => {
+    setRows(prev => prev.filter(row => !selectedRows.has(row.id)));
+    setSelectedRows(new Set());
   };
 
   const duplicateRow = (rowId) => {
@@ -709,12 +743,14 @@ function TaskDatabaseView() {
                             </button>
                           }
                         >
-                          <ColumnSettingsMenu
-                            column={col}
-                            onUpdate={updateColumn}
-                            onDelete={deleteColumn}
-                            onClose={() => setEditingColumn(null)}
-                          />
+                          {(closeMenu) => (
+                            <ColumnSettingsMenu
+                              column={col}
+                              onUpdate={updateColumn}
+                              onDelete={deleteColumn}
+                              onCloseMenu={closeMenu}
+                            />
+                          )}
                         </Dropdown>
                       </div>
                     </th>
@@ -727,7 +763,9 @@ function TaskDatabaseView() {
                         </button>
                       }
                     >
-                      <AddPropertyMenu onAddColumn={addColumn} />
+                      {(closeMenu) => (
+                        <AddPropertyMenu onAddColumn={addColumn} onCloseMenu={closeMenu} />
+                      )}
                     </Dropdown>
                   </th>
                 </tr>
@@ -749,17 +787,19 @@ function TaskDatabaseView() {
                       />
                     </td>
                     {columns.map(col => (
-                      <td key={col.id} className="p-0 text-gray-800 align-top">
+                      <td key={col.id} className="text-gray-800 align-top">
                         <EditableCell
                           value={row[col.id]}
                           onSave={(newValue) => handleCellChange(row.id, col.id, newValue)}
                           column={col}
+                          onUpdateColumnOptions={updateColumnOptions}
                         />
                       </td>
                     ))}
                     <td className="p-3 text-center">
                       {rowHover === row.id && (
                         <Dropdown
+                          align="right"
                           trigger={
                             <button
                               className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
@@ -769,12 +809,14 @@ function TaskDatabaseView() {
                             </button>
                           }
                         >
-                          <RowContextMenu
-                            rowId={row.id}
-                            onDelete={deleteRow}
-                            onDuplicate={duplicateRow}
-                            onClose={() => setContextMenu(null)}
-                          />
+                          {(closeMenu) => (
+                            <RowContextMenu
+                              rowId={row.id}
+                              onDelete={deleteRow}
+                              onDuplicate={duplicateRow}
+                              onClose={closeMenu}
+                            />
+                          )}
                         </Dropdown>
                       )}
                     </td>
@@ -793,20 +835,18 @@ function TaskDatabaseView() {
         </div>
 
         {selectedRows.size > 0 && (
-          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-3">
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-4 z-50">
             <span className="font-medium">{selectedRows.size} selected</span>
             <button
-              onClick={() => {
-                selectedRows.forEach(rowId => deleteRow(rowId));
-              }}
-              className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded flex items-center gap-1"
+              onClick={deleteSelectedRows}
+              className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded flex items-center gap-2 transition-colors"
             >
               <Trash2 size={14} />
               Delete
             </button>
             <button
               onClick={() => setSelectedRows(new Set())}
-              className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded"
+              className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded transition-colors"
             >
               Clear
             </button>
